@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 from os.path import join
 from collections import Counter
 
+from PIL import Image
 from pycocotools.coco import COCO
 import skimage.io as io
 import numpy as np
@@ -54,5 +55,8 @@ print("max: %f" % np.amax(mask))
 print("min: %f" % np.amin(mask))
 print("values are: %s" % str(Counter(mask.flatten())))
 
-print("Saving the mask also.")
+print("Saving the mask as a numpy array.")
 np.save("person_mask.npy", mask)
+print("Saving the mask as an image too.")
+maskimg = Image.fromarray(np.uint8(mask * 255), 'L')
+maskimg.save('mask.png', 'PNG') 
