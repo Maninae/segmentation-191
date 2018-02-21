@@ -16,7 +16,7 @@ pylab.rcParams['figure.figsize'] = (8.0, 10.0)
 coco_dir = "../coco"
 anno_dir = join(coco_dir, "annotations/annotations_trainval2017")
 img_dir  = join(coco_dir, "images/coco-val2017")
-
+out_dir  = "../tmp"
 
 val_annFile = join(anno_dir, "instances_val2017.json")
 coco = COCO(val_annFile)
@@ -37,7 +37,7 @@ plt.axis('off')
 plt.imshow(I)
 # plt.show()
 print("Saving the image of a person.")
-plt.imsave('person_img.png', I)
+plt.imsave(join(out_dir, 'person_img.png'), I)
 
 plt.imshow(I)
 plt.axis('off')
@@ -56,7 +56,7 @@ print("min: %f" % np.amin(mask))
 print("values are: %s" % str(Counter(mask.flatten())))
 
 print("Saving the mask as a numpy array.")
-np.save("person_mask.npy", mask)
+np.save(join(out_dir, "person_mask.npy"), mask)
 print("Saving the mask as an image too.")
 maskimg = Image.fromarray(np.uint8(mask * 255), 'L')
-maskimg.save('mask.png', 'PNG') 
+maskimg.save(join(out_dir, 'mask.png'), 'PNG') 
