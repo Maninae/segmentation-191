@@ -1,8 +1,6 @@
 
 
 # Used in the main clause to specify one test
-fname = input("Function to run: ")
-
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
@@ -21,11 +19,28 @@ pylab.rcParams['figure.figsize'] = (8.0, 10.0)
 coco_dir = "../coco"
 anno_dir = join(coco_dir, "annotations/annotations_trainval2017")
 img_dir  = join(coco_dir, "images/coco-val2017")
+img_dir_train = join(coco_dir, "images/coco-train2017")
 out_dir  = "../tmp"
 
 # val 2017 is 5K images, so easy to explore
 val_annFile = join(anno_dir, "instances_val2017.json")
 coco = COCO(val_annFile)
+train_annFile = join(anno_dir, "instances_train2017.json")
+cocoTrain = COCO(train_annFile)
+
+def statistics_on_persons():
+    """
+    Count some stats on the images with people in them.
+    """
+    catIds = cocoTrain.getCatIds(catNms=['person'])
+    imgIds = cocoTrain.getImgIds(catIds=catIds)
+    print("There are %d images under 'person' in the train 2017 split." % len(imgIds))
+
+    catIds = coco.getCatIds(catNms=['person'])
+    imgIds = coco.getImgIds(catIds=catIds)
+    print("There are %d iamges under 'person' in the val 2017 split." % len(imgIds))
+
+    
 
 def image_sizes():
     # This is NOT comprehensive. We are just sampling image sizes from val 2017, person category.
@@ -33,7 +48,7 @@ def image_sizes():
     imgIds = coco.getImgIds(catIds=catIds)
     print("We found %d imgIds under the catIds %s ('person')" % (len(imgIds), str(catIds)))
 
-    image_dims = [(img[0]['height'], img[0]['width']) for img in coco.loadImgs(imgIds)] 
+    image_dims = [(img['height'], img['width']) for img in coco.loadImgs(imgIds)] 
     # coco.loadImgs(...) = A list of img's, where img = a 1-list of a dictionary.
     """
     {
@@ -59,7 +74,8 @@ def basic_demo():
 
     print("Selecting an arbitrary image.")
     img = coco.loadImgs(imgIds[0]) # A list of one item, which is a dictionary.
-    # This is a list so we access one more time.
+    
+    # This returns a list of images, even with 1 image id param, so we access one more time.
     img = img[0]
 
     img_filename = img['file_name']
@@ -94,6 +110,11 @@ def basic_demo():
 
 if __name__ == "__main__":
     # If necessary we can have params in the future
-    params = ()
+    params  = ()
+    locals_ = locals()
+    fclass  = type(lambda: 1)
+    funcs = [name for name in locals_ if type(locals_[name]) == fclass]
 
+    print("Functions are: %s" % str(funcs))
+    fname = input("Function to run: ")
     locals()[fname](*params)
