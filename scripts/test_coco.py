@@ -58,7 +58,8 @@ def basic_demo():
     print("We found %d imgIds under the catIds %s ('person')" % (len(imgIds), str(catIds)))
 
     print("Selecting an arbitrary image.")
-    img = coco.loadImgs(imgIds[0]) # A list of one item, which is a dictionary.
+    arb_img = imgIds[0]
+    img = coco.loadImgs(arb_img) # A list of one item, which is a dictionary.
     # This is a list so we access one more time.
     img = img[0]
 
