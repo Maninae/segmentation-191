@@ -1,6 +1,6 @@
 .floyd*
 coco/
-
+densenet_encoder/densenet_encoder_assets/
 ##########################################
 # Default python gitignores from the repo:
 
