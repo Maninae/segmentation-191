@@ -18,8 +18,10 @@ pylab.rcParams['figure.figsize'] = (8.0, 10.0)
 
 coco_dir = "../coco"
 anno_dir = join(coco_dir, "annotations/annotations_trainval2017")
-img_dir  = join(coco_dir, "images/coco-val2017")
-img_dir_train = join(coco_dir, "images/coco-train2017")
+#img_dir  = join(coco_dir, "images/coco-val2017")
+#img_dir_train = join(coco_dir, "images/coco-train2017")
+img_dir_train = join(coco_dir, "images/people-train2017")
+img_dir  = join(coco_dir, "images/people-val2017")
 out_dir  = "../tmp"
 
 # val 2017 is 5K images, so easy to explore
@@ -74,9 +76,11 @@ def basic_demo():
 
     print("Selecting an arbitrary image.")
     arb_img = imgIds[0]
+    print("image is %s" % str(arb_img))
     img = coco.loadImgs(arb_img) # A list of one item, which is a dictionary.
     # This is a list so we access one more time.
     img = img[0]
+    print("Loaded image (after access from list) is: %s" % str(img))
 
     img_filename = img['file_name']
     I = io.imread('%s/%s' % (img_dir, img_filename)) # This is an ndarray
@@ -95,6 +99,8 @@ def basic_demo():
     # coco.showAnns(anns)
 
     ann = anns[0] # Just take one annotation
+    print("The annotation:")
+    print(ann)
     mask = coco.annToMask(ann) # Turn it into a binary mask for segmentation
     print(mask.shape)
     print(mask)
