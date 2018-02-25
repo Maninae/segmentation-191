@@ -37,6 +37,7 @@ def test_img_and_mask_datagen():
         seed=seed,
         shuffle=True,
         batch_size=128,
+        color_mode='rgb',
         target_size=(224,224))
     val_mask_generator  = mask_datagen.flow_from_directory(
         val_mask_dir_wrapper,
@@ -61,7 +62,7 @@ def test_img_and_mask_datagen():
         print(type(y))
         print(y.shape)
         
-        print("Taking #79 (arbitrary) out of this batch, and storing their images.")
+        print("Taking some out of this batch, and storing their images.")
         arbitrary_nums  = [12, 24, 79]
         for arbitrary in arbitrary_nums:
             x_arr = x[arbitrary]
