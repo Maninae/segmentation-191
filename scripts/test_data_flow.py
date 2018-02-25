@@ -56,14 +56,6 @@ def test_img_and_mask_datagen():
     print("val_generator is: %s" % str(val_generator))
 
     for x, y in val_generator:
-        old_x = x
-        old_y = y
-        x = x.astype(np.uint8)
-        y = y.astype(np.uint8)
-        xdiff = np.sum(old_x - x)
-        ydiff = np.sum(old_y - y)
-        print("xdiff: %f, ydiff: %f" % (xdiff, ydiff))
-        
         print("Info about x:")
         print(x.shape)
 
@@ -75,9 +67,15 @@ def test_img_and_mask_datagen():
         for arbitrary in arbitrary_nums:
             x_arr = x[arbitrary]
             y_arr = y[arbitrary][:,:,0] # remove the last dim
-            #np.save(join(tmp, "x_arr_%d.npy" % arbitrary), x_arr)
-            #np.save(join(tmp, "y_arr_%d.npy" % arbitrary), y_arr)
-        
+            
+
+            # casting to uint8 is necessary for displaying photos.
+            # For the machine learning, don't need to do anything.
+            x_arr_int = x_arr.astype(np.uint8)
+            y_arr_int = y_arr.astype(np.uint8)
+            xdiff = np.sum(x_arr - x_arr_int)
+            ydiff = np.sum(y_arr - y_arr_int)
+            print("xdiff: %f, ydiff: %f" % (xdiff, ydiff))
             #x_img = Image.fromarray(x, mode='RGB')
             #y_img = Image.fromarray(np.uint8(y * 255), mode='L')
 
@@ -88,6 +86,10 @@ def test_img_and_mask_datagen():
             plt.savefig(join(tmp, "dataflow_%d_x.png" % arbitrary))
             plt.imshow(y_arr)
             plt.savefig(join(tmp, "dataflow_%d_y.png" % arbitrary))
+            plt.imshow(x_arr_int)
+            plt.savefig(join(tmp, "dataflow_%d_x_INT.png" % arbitrary))
+            plt.imshow(y_arr_int)
+            plt.savefig(join(tmp, "dataflow_%d_y_INT.png" % arbitrary))
         break
 
 if __name__ == "__main__":
