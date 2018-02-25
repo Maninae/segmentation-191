@@ -4,6 +4,7 @@ from pycocotools.coco import COCO
 from sys import exit
 from PIL import Image
 import numpy as np
+from pycocotools.mask import merge
 
 coco_dir = "../coco"
 anno_dir = join(coco_dir, "annotations/annotations_trainval2017")
@@ -13,8 +14,8 @@ out_dir_train  = join(coco_dir, "images/people-train2017")
 out_dir_val = join(coco_dir, "images/people-val2017")
 
 img_dir = join(coco_dir, "images")
-mask_dir_train = join(img_dir, "mask-train2017")
-mask_dir_val = join(img_dir, "mask-val2017")
+mask_dir_train = join(img_dir, "mask-train2017-wrapper/mask-train2017")
+mask_dir_val = join(img_dir, "mask-val2017-wrapper/mask-val2017")
 
 val_annFile = join(anno_dir, "instances_val2017.json")
 cocoVal = COCO(val_annFile)
@@ -49,20 +50,43 @@ def transfer_files(filenames, source_dir, dest_dir):
 
 
 def generate_masks(coco, img_ids, out_dir):
+
+    def union_of_masks(masks):
+        mask = np.zeros(masks[0].shape)
+        for m in masks:
+            mask += m
+        mask[mask > 1] = 1
+        return mask
+
     print("Generating masks for out_dir: %s" % out_dir)
     print("Sample image_ids: %s" % str(img_ids[:5]))
 
     annIds = coco.getAnnIds(imgIds=img_ids, catIds=person_cat_id, iscrowd=None)
     print("Retrieved annIds: %s..." % str(annIds[:5]))
     anns = coco.loadAnns(annIds)
-    print("Retrieved annotations.")
+    print("Retrieved annotations. There are %d." % len(anns))
 
     counter = 0
+    all_anns = {}
     for ann in anns:
         image_id = ann['image_id']
         filename = '%012d.png' % image_id
+        
+        if filename not in all_anns:
+            all_anns[filename] = [ann]
+        else:
+            all_anns[filename].append(ann)
+            print("We found two anns under %s. appended, counter %d." % (filename, counter))
+        counter += 1
 
-        mask = coco.annToMask(ann)
+    counter = 0
+    print("Saving the anns as masks now.")
+    for filename in all_anns:
+        anns = all_anns[filename]
+        masks = [coco.annToMask(ann) for ann in anns]
+        
+        mask = union_of_masks(masks)
+
         maskimg = Image.fromarray(np.uint8(mask * 255), 'L')
         maskimg.save(join(out_dir, filename), 'PNG')
         counter += 1
