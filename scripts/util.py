@@ -1,5 +1,4 @@
 from os.path import join
-from pycocotools.coco import COCO
 
 coco_dir = "../coco"
 anno_dir = join(coco_dir, "annotations")
@@ -22,8 +21,12 @@ val_img_dir_wrapper = wrapper(val_img_dir)
 train_mask_dir_wrapper = wrapper(train_mask_dir)
 val_mask_dir_wrapper = wrapper(val_mask_dir)
 
+
+
 def cocoTrain():
+    from pycocotools.coco import COCO
     return COCO(train_anno_file)
 
 def cocoVal():
+    from pycocotools.coco import COCO
     return COCO(val_anno_file)
