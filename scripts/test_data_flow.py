@@ -26,8 +26,8 @@ def test_img_and_mask_datagen():
         horizontal_flip = True
     )
 
-    image_datagen = ImageDataGenerator(**datagen_args)
-    mask_datagen  = ImageDataGenerator(**datagen_args)
+    image_datagen = ImageDataGenerator()
+    mask_datagen  = ImageDataGenerator()
 
     seed = 191
     # Also use a batch_size = 128 in real code. shuffle=True by default
@@ -36,7 +36,7 @@ def test_img_and_mask_datagen():
         class_mode=None,
         seed=seed,
         shuffle=True,
-        batch_size=128,
+        batch_size=1,
         color_mode='rgb',
         target_size=(224,224))
     val_mask_generator  = mask_datagen.flow_from_directory(
@@ -44,7 +44,7 @@ def test_img_and_mask_datagen():
         class_mode=None,
         seed=seed,
         shuffle=True,
-        batch_size=128,
+        batch_size=1,
         color_mode = 'grayscale',
         target_size = (224,224))
 
@@ -63,7 +63,7 @@ def test_img_and_mask_datagen():
         print(y.shape)
         
         print("Taking some out of this batch, and storing their images.")
-        arbitrary_nums  = [12, 24, 79]
+        arbitrary_nums  = [12]
         for arbitrary in arbitrary_nums:
             x_arr = x[arbitrary]
             y_arr = y[arbitrary][:,:,0] # remove the last dim
