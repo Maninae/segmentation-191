@@ -14,11 +14,11 @@ from keras.preprocessing.image import ImageDataGenerator
 
 def test_img_and_mask_datagen():
     datagen_args = dict(
-        rotation_range = 20,
-        width_shift_range = 0.1,
-        height_shift_range = 0.1,
-        zoom_range = 0.1,
-        horizontal_flip = True
+#        rotation_range = 20,
+#        width_shift_range = 0.1,
+#        height_shift_range = 0.1,
+#        zoom_range = 0.1,
+#        horizontal_flip = True
     )
 
     image_datagen = ImageDataGenerator(**datagen_args)
@@ -60,6 +60,8 @@ def test_img_and_mask_datagen():
         arbitrary = 79
         x = x[arbitrary]
         y = y[arbitrary][:,:,0] # remove the last dim
+        print("x shape %s, y shape %s" % (str(x.shape), str(y.shape)))
+
         x_img = Image.fromarray(x, mode='RGB')
         y_img = Image.fromarray(np.uint8(y * 255), mode='L')
 
