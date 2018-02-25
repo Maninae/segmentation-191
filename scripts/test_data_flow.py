@@ -78,6 +78,8 @@ def test_img_and_mask_datagen():
             print("xdiff: %f, ydiff: %f" % (xdiff, ydiff))
             #x_img = Image.fromarray(x, mode='RGB')
             #y_img = Image.fromarray(np.uint8(y * 255), mode='L')
+            difference_array = x_arr - x_arr_int
+            np.save(join(tmp, "diff.npy"), difference_array)
 
             print("Saving the image and mask in ../tmp.")
             #x_img.save(join(tmp, "dataflow_x.png"), 'PNG')
