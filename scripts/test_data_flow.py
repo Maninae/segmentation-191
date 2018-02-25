@@ -26,8 +26,8 @@ def test_img_and_mask_datagen():
         horizontal_flip = True
     )
 
-    image_datagen = ImageDataGenerator()
-    mask_datagen  = ImageDataGenerator()
+    image_datagen = ImageDataGenerator(**datagen_args)
+    mask_datagen  = ImageDataGenerator(**datagen_args)
 
     seed = 191
     # Also use a batch_size = 128 in real code. shuffle=True by default
@@ -37,7 +37,7 @@ def test_img_and_mask_datagen():
         class_mode=None,
         seed=seed,
         shuffle=True,
-        batch_size=5,
+        batch_size=128,
         color_mode='rgb',
         target_size=(224,224))
     val_mask_generator  = mask_datagen.flow_from_directory(
@@ -46,7 +46,7 @@ def test_img_and_mask_datagen():
         class_mode=None,
         seed=seed,
         shuffle=True,
-        batch_size=5,
+        batch_size=128,
         color_mode = 'grayscale',
         target_size = (224,224))
 
@@ -56,21 +56,27 @@ def test_img_and_mask_datagen():
     print("val_generator is: %s" % str(val_generator))
 
     for x, y in val_generator:
+        old_x = x
+        old_y = y
+        x = x.astype(np.uint8)
+        y = y.astype(np.uint8)
+        xdiff = np.sum(old_x - x)
+        ydiff = np.sum(old_y - y)
+        print("xdiff: %f, ydiff: %f" % (xdiff, ydiff))
+        
         print("Info about x:")
-        print(type(x))
         print(x.shape)
 
         print("Info about y:")
-        print(type(y))
         print(y.shape)
         
         print("Taking some out of this batch, and storing their images.")
-        arbitrary_nums  = [4]
+        arbitrary_nums  = [120]
         for arbitrary in arbitrary_nums:
             x_arr = x[arbitrary]
             y_arr = y[arbitrary][:,:,0] # remove the last dim
-            np.save(join(tmp, "x_arr_%d.npy" % arbitrary), x_arr)
-            np.save(join(tmp, "y_arr_%d.npy" % arbitrary), y_arr)
+            #np.save(join(tmp, "x_arr_%d.npy" % arbitrary), x_arr)
+            #np.save(join(tmp, "y_arr_%d.npy" % arbitrary), y_arr)
         
             #x_img = Image.fromarray(x, mode='RGB')
             #y_img = Image.fromarray(np.uint8(y * 255), mode='L')
@@ -79,9 +85,9 @@ def test_img_and_mask_datagen():
             #x_img.save(join(tmp, "dataflow_x.png"), 'PNG')
             #y_img.save(join(tmp, 'dataflow_y.png'), 'PNG')
             plt.imshow(x_arr)
-            plt.savefig(join(tmp, "dataflow_x_%d.png" % arbitrary))
+            plt.savefig(join(tmp, "dataflow_%d_x.png" % arbitrary))
             plt.imshow(y_arr)
-            plt.savefig(join(tmp, "dataflow_y_%d.png" % arbitrary))
+            plt.savefig(join(tmp, "dataflow_%d_y.png" % arbitrary))
         break
 
 if __name__ == "__main__":
