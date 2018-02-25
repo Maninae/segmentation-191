@@ -4,6 +4,9 @@ import numpy as np
 from os.path import join
 
 from PIL import Image
+import matplotlib
+matplotlib.use('Agg')
+from matplotlib import pyplot as plt
 
 # from util import cocoTrain, cocoVal
 # Common pathnames
@@ -12,13 +15,15 @@ from util import train_img_dir_wrapper, val_img_dir_wrapper, \
 
 from keras.preprocessing.image import ImageDataGenerator
 
+tmp = "../tmp"
+
 def test_img_and_mask_datagen():
     datagen_args = dict(
-#        rotation_range = 20,
-#        width_shift_range = 0.1,
-#        height_shift_range = 0.1,
-#        zoom_range = 0.1,
-#        horizontal_flip = True
+        rotation_range = 20,
+        width_shift_range = 0.1,
+        height_shift_range = 0.1,
+        zoom_range = 0.1,
+        horizontal_flip = True
     )
 
     image_datagen = ImageDataGenerator(**datagen_args)
@@ -57,18 +62,23 @@ def test_img_and_mask_datagen():
         print(y.shape)
         
         print("Taking #79 (arbitrary) out of this batch, and storing their images.")
-        arbitrary = 79
-        x = x[arbitrary]
-        y = y[arbitrary][:,:,0] # remove the last dim
-        print("x shape %s, y shape %s" % (str(x.shape), str(y.shape)))
+        arbitrary_nums  = [12, 24, 79]
+        for arbitrary in arbitrary_nums:
+            x_arr = x[arbitrary]
+            y_arr = y[arbitrary][:,:,0] # remove the last dim
+            np.save(join(tmp, "x_arr_%d.npy" % arbitrary), x_arr)
+            np.save(join(tmp, "y_arr_%d.npy" % arbitrary), y_arr)
+        
+            #x_img = Image.fromarray(x, mode='RGB')
+            #y_img = Image.fromarray(np.uint8(y * 255), mode='L')
 
-        x_img = Image.fromarray(x, mode='RGB')
-        y_img = Image.fromarray(np.uint8(y * 255), mode='L')
-
-        print("Saving the image and mask in ../tmp.")
-        tmp = "../tmp"
-        x_img.save(join(tmp, "dataflow_x.png"), 'PNG')
-        y_img.save(join(tmp, 'dataflow_y.png'), 'PNG')
+            print("Saving the image and mask in ../tmp.")
+            #x_img.save(join(tmp, "dataflow_x.png"), 'PNG')
+            #y_img.save(join(tmp, 'dataflow_y.png'), 'PNG')
+            plt.imshow(x_arr)
+            plt.savefig(join(tmp, "dataflow_x_%d.png" % arbitrary))
+            plt.imshow(y_arr)
+            plt.savefig(join(tmp, "dataflow_y_%d.png" % arbitrary))
         break
 
 if __name__ == "__main__":
