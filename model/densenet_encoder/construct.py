@@ -49,6 +49,7 @@ encoder = Model(inputs=inp, outputs=[out_res56, out_res28, out])
 print("Freezing encoder weights. All layers set trainable=False.")
 for layer in encoder.layers:
     layer.trainable = False
+    layer.name = 'encoder_' + layer.name
 
 print("Saving the encoder weights and architecture.")
 encoder.save("encoder_model.h5")

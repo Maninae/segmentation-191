@@ -11,14 +11,16 @@ from util import swish
 """
 TODO / Experiments List:
 ------------------------
-Hierarchical supervision
-Swish activation vs. relu
+1. Hierarchical supervision (SDN segmentation)
+2. only pass on the new dense features to concat (100 Tiramisu)
+3. Swish activation vs. relu (swish)
 """
 
-class DiamondbackModel(object):
+class DiamondbackModelCreator(object):
     """
     """
     def __init__(self, dn_encoder_path, nb_extra_sdn_units):
+        assert type(nb_extra_sdn_units) is int and nb_extra_sdn_units >= 0
 
         self.input_shape = (224, 224, 3) # Must be (224,224,3) to fit DenseNet encoder
         self.nb_extra_sdn_units = nb_extra_sdn_units
@@ -26,12 +28,12 @@ class DiamondbackModel(object):
         self.dn_encoder_path = dn_encoder_path
         self.nb_encoder_output_filters = 1056
 
-        self.nb_compression_after_down1 = 768
-        self.nb_compression_after_down2 = 1024
-        self.nb_compression_after_up1   = 768
-        self.nb_compression_after_up2   = 512
+        self.nb_compression_after_down1 = 384
+        self.nb_compression_after_down2 = 512
+        self.nb_compression_after_up1   = 384
+        self.nb_compression_after_up2   = 256
 
-        self.nb_compression_before_output = 768
+        self.nb_compression_before_output = self.nb_compression_after_up2 * (1 + nb_extra_sdn_units) // 2
 
         self.data_format = K.image_data_format()
         assert self.data_format in {'channels_last', 'channels_first'}
@@ -43,33 +45,45 @@ class DiamondbackModel(object):
         # from keras.utils.generic_utils import get_custom_objects
         # get_custom_objects().update({'swish': Activation(swish)})
 
-        self.model = create_diamondback_model()
+        self.model = self.create_diamondback_model()
 
 
     def create_diamondback_model(self):
         """
         """
         input_tensor = Input(shape=self.input_shape)
+        sdn_output_tensors = []
+
         x, small_F, big_F, small_H, big_H = self.__first_sdn_unit(input_tensor,
                                                                   self.dn_encoder_path,
                                                                   nb_conv_filters=32)
+        sdn_output_tensors.append(x)
 
-        small_H = self.__conv_layer(small_H, nb_filters=384, dropout_rate=0.2)
-        big_H = self.__conv_layer(big_H, nb_filters=192, dropout_rate=0.2)
-        # Do something here
+        x = self.__compression_layer(x, self.nb_compression_after_down2)
 
-        sdn_ouput_tensors = []
+        if self.nb_extra_sdn_units > 0:
+            small_H = self.__conv_layer(small_H, nb_filters=384, dropout_rate=0.2)
+            big_H = self.__conv_layer(big_H, nb_filters=192, dropout_rate=0.2)
+        
+        # Add HierSup for 2 F's here
+
+        
         for _ in range(self.nb_extra_sdn_units):
-            #x, small_F, big_F = __sdn_unit(x, big_F, small_F, small_H, big_H, nb_conv_filters=32)
             x, small_F, big_F = self.__sdn_unit(x,
                                                 down1_prev_feature_tensor=big_F,
                                                 down2_prev_feature_tensor=small_F,
                                                 up1_prev_feature_tensor=small_H,
                                                 up2_prev_feature_tensor=big_H,
                                                 nb_conv_filters=32)
-            sdn_ouput_tensors.append(x)
+            sdn_output_tensors.append(x)
+            # Add HierSup for 2 F's here
 
-        output_tensor = self.__last_upsampling_unit(sdn_ouput_tensors)
+        if len(sdn_output_tensors) > 1:
+            x = Concatenate(axis=self.concat_axis)(sdn_output_tensors) # e.g. (56, 56, 1536,) for 3 units
+        else:
+            x = sdn_output_tensors[0]
+
+        output_tensor = self.__last_upsampling_unit(x)
 
         diamondback = Model(inputs=input_tensor, outputs=output_tensor)
 
@@ -147,15 +161,17 @@ class DiamondbackModel(object):
         return x, small_feature_tensor, big_feature_tensor
 
 
-    def __last_upsampling_unit(self, sdn_unit_output_tensors, dropout_rate=0.2):
+    def __last_upsampling_unit(self, x, dropout_rate=0.2):
         """
         Args:
-            sdn_unit_output_tensors: list of tensors, each an output from a previous sdn unit
+            x: 
         """
-        x = Concatenate(axis=self.concat_axis)(sdn_unit_output_tensors) # (?, 56, 56, 1536)
 
         x = self.__deconv_layer(x, self.nb_compression_before_output, dropout_rate=dropout_rate)
+        x = self.__conv_layer(x, self.nb_compression_before_output, dropout_rate=dropout_rate)
+
         x = self.__deconv_layer(x, self.nb_compression_before_output, dropout_rate=dropout_rate)
+        x = self.__conv_layer(x, self.nb_compression_before_output, dropout_rate=dropout_rate)
         
         x = self.__conv_layer(x, 2) # No dropout on final convolution
         # final shape: (None, 224, 224, 2)
@@ -197,16 +213,20 @@ class DiamondbackModel(object):
 
         # This is an upsampling block
         if prev_nb_filters is not None: 
-            x = self.__deconv_layer(x, prev_nb_filters, dropout_rate=dropout_rate)
+            x = self.__deconv_layer(x, prev_nb_filters // 2, dropout_rate=dropout_rate) # Twice resolution, half filters
         # This is a downsampling block
         else:
             x = MaxPooling2D()(x)
 
         x = Concatenate(axis=self.concat_axis)([x, prev_feature_tensor])
 
+        #new_filters_list = []
         for _ in range(nb_convolutions):
             new_filters = self.__conv_layer(x, nb_conv_filters, dropout_rate=dropout_rate)
+            #new_filters_list.append(new_filters)
             x = Concatenate(axis=self.concat_axis)([x, new_filters])
+
+        #x = Concatenate(axis=self.concat_axis)(new_filters_list)
 
         x = self.__compression_layer(x, nb_comp_filters)
 
@@ -261,3 +281,11 @@ class DiamondbackModel(object):
         return x
 
 
+
+
+if __name__ == "__main__":
+    creator = DiamondbackModelCreator(
+        dn_encoder_path="densenet_encoder/encoder_model.h5",
+        nb_extra_sdn_units=1)
+    db = creator.model
+    db.summary()
