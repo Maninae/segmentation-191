@@ -22,7 +22,7 @@ class IntraEpochHistory(Callback):
 
 
 def get_callbacks_list():
-    print("Getting our callbacks...")
+    print("[db-training] Getting our callbacks...")
     history = IntraEpochHistory()
 
     #savepath = "/output/model/%s/%s_ep{epoch:02d}-vloss={val_loss:.4f}-vbacc={val_binary_accuracy:.4f}.h5" % (sensor_id, model_base_name)
@@ -46,15 +46,17 @@ def get_callbacks_list():
 
 
 def get_generators():
-    print("Getting the data generators...")
+    print("[db-training] Getting the train data generator.")
     train_generator = get_generator(train_img_dir_wrapper, train_mask_dir_wrapper)
+    
+    print("[db-training] Getting the val data generator.")
     val_generator = get_generator(val_img_dir_wrapper, val_mask_dir_wrapper)
 
     return train_generator, val_generator
 
 
 def get_model(nb_extra_sdn_units):
-    print("Getting the model...")
+    print("[db-training] Getting the model...")
     creator = DiamondbackModelCreator(
                 dn_encoder_path="model/densenet_encoder/encoder_model.h5",
                 nb_extra_sdn_units=nb_extra_sdn_units)
@@ -63,7 +65,7 @@ def get_model(nb_extra_sdn_units):
     return model
 
 def get_adam_optimizer(initial_learnrate):
-    print("Getting the optimizer...")
+    print("[db-training] Getting the optimizer...")
     optimizer = Adam(lr=0.1)
     return optimizer
 
@@ -72,7 +74,7 @@ if __name__ == "__main__":
     model = get_model(nb_extra_sdn_units=1)
     optimizer = get_adam_optimizer(initial_learnrate=0.1)
     
-    print("Compiling the model...")
+    print("[db-training] Compiling the model...")
     model.compile(loss=per_pixel_softmax_cross_entropy_loss, optimizer=optimizer)
 
     history, checkpointer, lrate_scheduler = get_callbacks_list() # History, Checkpointer
@@ -80,7 +82,7 @@ if __name__ == "__main__":
 
     train_generator, val_generator = get_generators()
 
-    print("Beginning to fit diamondback model.")
+    print("[db-training] Beginning to fit diamondback model.")
     history_over_epochs = model.fit_generator(
         train_generator,
         steps_per_epoch=500, # 64115 / 128
