@@ -42,7 +42,7 @@ def get_generator(target_img_dir_wrapper,
 
     # Also use a batch_size = 128 in real code. shuffle=True by default
     image_generator = image_datagen.flow_from_directory(
-        target_directory_wrapper,
+        target_img_dir_wrapper,
         class_mode=None,
         seed=seed,
         shuffle=True,
