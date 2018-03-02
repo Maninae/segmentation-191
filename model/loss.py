@@ -1,6 +1,6 @@
 import keras.backend as K
 
-def per_pixel_softmax_crossentropy_loss(y_true, y_pred):
+def per_pixel_softmax_cross_entropy_loss(y_true, y_pred):
 	return K.sum(K.sparse_categorical_crossentropy(y_true, y_pred, from_logits=True))
 
 

@@ -5,8 +5,12 @@ import keras.backend as K
 from keras.models import Model
 from keras.layers import Input, Activation, Dropout, Conv2D, Conv2DTranspose, MaxPooling2D, BatchNormalization, Concatenate
 
-from densenet_encoder.load import load_densenet_encoder_model
-from util import swish 
+if __name__ == "__main__":
+    from densenet_encoder.load import load_densenet_encoder_model
+    from util import swish
+else:
+    from model.densenet_encoder.load import load_densenet_encoder_model
+    from model.util import swish 
 
 """
 TODO / Experiments List:
