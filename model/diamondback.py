@@ -1,6 +1,3 @@
-import numpy as np
-import tensorflow as tf
-
 import keras.backend as K
 from keras.models import Model
 from keras.layers import Input, Activation, Dropout, Conv2D, Conv2DTranspose, MaxPooling2D, BatchNormalization, Concatenate
@@ -48,8 +45,6 @@ class DiamondbackModelCreator(object):
         # self.activation = swish
         # from keras.utils.generic_utils import get_custom_objects
         # get_custom_objects().update({'swish': Activation(swish)})
-
-        self.model = self.create_diamondback_model()
 
 
     def create_diamondback_model(self):
@@ -291,5 +286,5 @@ if __name__ == "__main__":
     creator = DiamondbackModelCreator(
         dn_encoder_path="densenet_encoder/encoder_model.h5",
         nb_extra_sdn_units=1)
-    db = creator.model
+    db = creator.create_diamondback_model()
     db.summary()
