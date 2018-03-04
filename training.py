@@ -69,7 +69,7 @@ def get_model(nb_extra_sdn_units):
 
 def get_adam_optimizer(initial_learnrate):
     print("[db-training] Getting the optimizer...")
-    optimizer = Adam(lr=0.1)
+    optimizer = Adam(lr=initial_learnrate)
     return optimizer
 
 if __name__ == "__main__":
@@ -88,8 +88,20 @@ if __name__ == "__main__":
     print("[db-training] Beginning to fit diamondback model.")
 
     for x, y in train_generator:
-        print(x.shape, '\n', x)
-        print(y.shape, '\n', y)
+        print("X", x.shape)
+        print("max, min", np.amax(x), np.amin(x))
+
+        print("Y", y.shape)
+        print('max, min', np.amax(y), np.amin(y))
+        values = set()
+        for a in y:
+            for b in a:
+                for c in b:
+                    values.add(c)
+        print("y unique values:", values)
+
+
+        break
         # Other debug stuff
 
 
