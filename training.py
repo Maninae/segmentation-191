@@ -25,8 +25,11 @@ def get_callbacks_list():
     print("[db-training] Getting our callbacks...")
     history = IntraEpochHistory()
 
+    # From AIH:
     #savepath = "/output/model/%s/%s_ep{epoch:02d}-vloss={val_loss:.4f}-vbacc={val_binary_accuracy:.4f}.h5" % (sensor_id, model_base_name)
-    savepath = "model/weights/diamondback_ep{epoch:02d}-vloss={val_loss:.4f}-tloss={train_loss:.4f}.h5"
+    
+    #savepath = "model/weights/diamondback_ep{epoch:02d}-vloss={val_loss:.4f}-tloss={train_loss:.4f}.h5"
+    savepath = "/output/model_weights/diamondback_ep{epoch:02d}-vloss={val_loss:.4f}-tloss={train_loss:.4f}.h5"
     checkpointer = ModelCheckpoint(savepath, monitor='val_loss', verbose=1, save_best_only=True)
 
     def step_decay(nb_epochs, lr):
@@ -83,6 +86,15 @@ if __name__ == "__main__":
     train_generator, val_generator = get_generators()
 
     print("[db-training] Beginning to fit diamondback model.")
+
+    for x, y in train_generator:
+        print(x.shape, '\n', x)
+        print(y.shape, '\n', y)
+        # Other debug stuff
+
+
+    quit() # Stop before the real run
+
     history_over_epochs = model.fit_generator(
         train_generator,
         steps_per_epoch=500, # 64115 / 128

@@ -38,7 +38,7 @@ def get_generator(target_img_dir_wrapper,
     """
 
     image_datagen = ImageDataGenerator(**datagen_args)
-    mask_datagen  = ImageDataGenerator(**datagen_args)
+    mask_datagen  = ImageDataGenerator(**datagen_args, preprocessing_function=preprocess_mask)
 
     # Also use a batch_size = 128 in real code. shuffle=True by default
     image_generator = image_datagen.flow_from_directory(
