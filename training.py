@@ -29,7 +29,7 @@ def get_callbacks_list():
     #savepath = "/output/model/%s/%s_ep{epoch:02d}-vloss={val_loss:.4f}-vbacc={val_binary_accuracy:.4f}.h5" % (sensor_id, model_base_name)
     
     #savepath = "model/weights/diamondback_ep{epoch:02d}-vloss={val_loss:.4f}-tloss={train_loss:.4f}.h5"
-    savepath = "/output/model_weights/diamondback_ep{epoch:02d}-vloss={val_loss:.4f}-tloss={train_loss:.4f}.h5"
+    savepath = "/output/diamondback_ep{epoch:02d}-vloss={val_loss:.4f}-tloss={train_loss:.4f}.h5"
     checkpointer = ModelCheckpoint(savepath, monitor='val_loss', verbose=1, save_best_only=True)
 
     def step_decay(nb_epochs, lr):
@@ -87,25 +87,6 @@ if __name__ == "__main__":
 
     print("[db-training] Beginning to fit diamondback model.")
 
-    for x, y in train_generator:
-        print("X", x.shape)
-        print("max, min", np.amax(x), np.amin(x))
-
-        print("Y", y.shape)
-        print('max, min', np.amax(y), np.amin(y))
-        values = set()
-        for a in y:
-            for b in a:
-                for c in b:
-                    values.add(c)
-        print("y unique values:", values)
-
-
-        break
-        # Other debug stuff
-
-
-    quit() # Stop before the real run
 
     history_over_epochs = model.fit_generator(
         train_generator,
@@ -114,3 +95,6 @@ if __name__ == "__main__":
         validation_data=val_generator,
         validation_steps=21, # 2693 / 128
         callbacks=callbacks_list)
+    
+    with open("/output/history_over_epochs.pkl", 'wb') as f:
+        pickle.dump(history_over_epochs, f)

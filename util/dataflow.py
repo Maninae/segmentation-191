@@ -1,6 +1,7 @@
 import numpy as np
 
 from keras.preprocessing.image import ImageDataGenerator
+from model.util import preprocess_input
 
 __default_datagen_args = dict(
     rotation_range = 20,
@@ -21,10 +22,10 @@ def preprocess_mask(y):
     Returns:
       a binary mask with values in {0, 1}.
     """
-
+    y[y <= 255./2] = 0 # Needs to be in this order, otherwise 1 gets overwritten
     y[y > 255./2] = 1
-    y[y <= 255./2] = 0
     binary_mask = y.astype(np.uint8)
+
     return binary_mask
 
 
@@ -37,7 +38,7 @@ def get_generator(target_img_dir_wrapper,
     directory = e.g. val_img_dir_wrapper
     """
 
-    image_datagen = ImageDataGenerator(**datagen_args)
+    image_datagen = ImageDataGenerator(**datagen_args, preprocessing_function=preprocess_input)
     mask_datagen  = ImageDataGenerator(**datagen_args, preprocessing_function=preprocess_mask)
 
     # Also use a batch_size = 128 in real code. shuffle=True by default
