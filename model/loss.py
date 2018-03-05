@@ -1,7 +1,22 @@
 import keras.backend as K
+import tensorflow as tf
+from tf.bitwise import bitwise_or
 
 def per_pixel_softmax_cross_entropy_loss(y_true, y_pred):
 	return K.sum(K.sparse_categorical_crossentropy(y_true, y_pred, from_logits=True))
+
+
+def IOU(y_true, y_pred):
+	# argmax to predict, add axis to make (224, 224, 1), cast to uint8
+	y_pred = K.argmax(y_pred)[..., np.newaxis].astype(tf.uint8)
+
+	intersection = K.sum(y_true * y_pred)
+	union = bitwise_or(y_true, y_pred)
+
+	return intersection / union
+
+
+
 
 
 
