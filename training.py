@@ -2,10 +2,12 @@ import numpy as np
 
 from util.dataflow import preprocess_mask, get_generator
 from util.pathutil import train_img_dir_wrapper, train_mask_dir_wrapper, \
-                          val_img_dir_wrapper, val_mask_dir_wrapper
+                          val_img_dir_wrapper, val_mask_dir_wrapper, \
+                          train_img_debug, train_mask_debug, \
+                          val_img_debug, val_mask_debug
 
 from model.diamondback import DiamondbackModelCreator
-from model.loss import per_pixel_softmax_cross_entropy_loss
+from model.loss import per_pixel_softmax_cross_entropy_loss, IOU
 
 from keras.callbacks import Callback, ModelCheckpoint, LearningRateScheduler
 from keras.optimizers import Adam
@@ -48,12 +50,19 @@ def get_callbacks_list():
     return history, checkpointer, lrate_scheduler
 
 
-def get_generators():
+def get_generators(debug=False):
+    if debug:
+        train_gen_paths = (train_img_debug, train_mask_debug)
+        val_gen_paths = (val_img_debug, val_mask_debug)
+    else:
+        train_gen_paths = (train_img_dir_wrapper, train_mask_dir_wrapper)
+        val_gen_paths = (val_img_dir_wrapper, val_mask_dir_wrapper)
+
     print("[db-training] Getting the train data generator.")
-    train_generator = get_generator(train_img_dir_wrapper, train_mask_dir_wrapper)
+    train_generator = get_generator(**train_gen_paths)
     
     print("[db-training] Getting the val data generator.")
-    val_generator = get_generator(val_img_dir_wrapper, val_mask_dir_wrapper)
+    val_generator = get_generator(**val_gen_paths)
 
     return train_generator, val_generator
 
@@ -73,17 +82,20 @@ def get_adam_optimizer(initial_learnrate):
     return optimizer
 
 if __name__ == "__main__":
+    debug = True if input("Debug? [y/n lowercase]") == 'y' else False
 
     model = get_model(nb_extra_sdn_units=1)
     optimizer = get_adam_optimizer(initial_learnrate=0.1)
     
     print("[db-training] Compiling the model...")
-    model.compile(loss=per_pixel_softmax_cross_entropy_loss, optimizer=optimizer)
+    model.compile(loss=per_pixel_softmax_cross_entropy_loss,
+                  optimizer=optimizer,
+                  metrics=[IOU])
 
     history, checkpointer, lrate_scheduler = get_callbacks_list() # History, Checkpointer
     callbacks_list = [history, checkpointer, lrate_scheduler]
 
-    train_generator, val_generator = get_generators()
+    train_generator, val_generator = get_generators(debug=debug)
 
     print("[db-training] Beginning to fit diamondback model.")
 
