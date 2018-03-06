@@ -113,7 +113,7 @@ if __name__ == "__main__":
         train_generator,
         steps_per_epoch = 64115 // DEFAULT_BATCH_SIZE,
         #steps_per_epoch=10, # 64115 / DEFAULT_BATCH_SIZE in util/dataflow.py
-        epochs=2,
+        epochs=90,
         validation_data=val_generator,
         validation_steps = 2693 // DEFAULT_BATCH_SIZE, # 2693 / DEFAULT_BATCH_SIZE in util/dataflow.py
         callbacks=callbacks_list)
