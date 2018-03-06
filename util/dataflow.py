@@ -11,6 +11,7 @@ __default_datagen_args = dict(
     horizontal_flip = True
 )
 
+DEFAULT_BATCH_SIZE = 64
 
 def preprocess_mask(y):
     """
@@ -32,7 +33,7 @@ def preprocess_mask(y):
 def get_generator(target_img_dir_wrapper,
                   target_mask_dir_wrapper,
                   datagen_args=__default_datagen_args,
-                  batch_size=128,
+                  batch_size=DEFAULT_BATCH_SIZE,
                   seed=191):
     """
     directory = e.g. val_img_dir_wrapper
