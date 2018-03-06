@@ -12,10 +12,11 @@ def IOU(y_true, y_pred):
         y_true = tf.to_int32(y_true)
         #print("ypred max min:", np.amax(y_pred), np.amin(y_pred))
         #print("ytrue max min:", np.amax(y_true), np.amin(y_true))
-        tf.assert_equal(tf.reduce_max(y_pred), 1)
-        tf.assert_equal(tf.reduce_min(y_pred), 0)
-        tf.assert_equal(tf.reduce_max(y_true), 1)
-        tf.assert_equal(tf.reduce_min(y_true), 0)
+        
+        #tf.assert_equal(tf.reduce_max(y_pred), 1)
+        #tf.assert_equal(tf.reduce_min(y_pred), 0)
+        #tf.assert_equal(tf.reduce_max(y_true), 1)
+        #tf.assert_equal(tf.reduce_min(y_true), 0)
 
         intersection = K.sum(y_true * y_pred)
         union = K.sum(tf.bitwise.bitwise_or(y_true, y_pred))

@@ -1,6 +1,6 @@
 from os.path import join
 
-coco_dir = "coco"
+coco_dir = "/coco"
 coco_debug = "coco-debug"
 #coco_dir = "/coco" # For FloydHub, this will be the mount point
 anno_dir = join(coco_dir, "annotations")

@@ -34,12 +34,12 @@ def get_callbacks_list():
     savepath = "/output/diamondback_ep{epoch:02d}-vloss={val_loss:.4f}-tloss={train_loss:.4f}.h5"
     checkpointer = ModelCheckpoint(savepath, monitor='val_loss', verbose=1, save_best_only=True)
 
-    def step_decay(nb_epochs, lr):
+    def step_decay(nb_epochs, lr=0.01): # Needs default value for backward TF compatibility
         """ This needs to be in harmony with get_optimizer(initial_learnrate)!
             Also depends on the number epochs we are doing. Right now:
             90 epochs, /10 downscaling at 30, 60.
         """
-        lr = 0.1 # Forget the parameter. Also, change this if Adam's initial lr changes
+        lr = 0.01 # Forget the parameter. Also, change this if Adam's initial lr changes
         if nb_epochs > 60:
             lr /= 100
         elif nb_epochs > 30:
@@ -52,25 +52,29 @@ def get_callbacks_list():
 
 def get_generators(debug=False):
     if debug:
-        train_gen_paths = (train_img_debug, train_mask_debug)
-        val_gen_paths = (val_img_debug, val_mask_debug)
+        train_gen_img_path = train_img_debug
+        train_gen_mask_path = train_mask_debug
+        val_gen_img_path = val_img_debug
+        val_gen_mask_path = val_mask_debug
     else:
-        train_gen_paths = (train_img_dir_wrapper, train_mask_dir_wrapper)
-        val_gen_paths = (val_img_dir_wrapper, val_mask_dir_wrapper)
+        train_gen_img_path = train_img_dir_wrapper
+        train_gen_mask_path = train_mask_dir_wrapper
+        val_gen_img_path = val_img_dir_wrapper
+        val_gen_mask_path = val_mask_dir_wrapper
 
     print("[db-training] Getting the train data generator.")
-    train_generator = get_generator(**train_gen_paths)
+    train_generator = get_generator(train_gen_img_path, train_gen_mask_path)
     
     print("[db-training] Getting the val data generator.")
-    val_generator = get_generator(**val_gen_paths)
+    val_generator = get_generator(val_gen_img_path, val_gen_mask_path)
 
     return train_generator, val_generator
 
 
-def get_model(nb_extra_sdn_units):
+def get_model(nb_extra_sdn_units, dn_encoder_path):
     print("[db-training] Getting the model...")
     creator = DiamondbackModelCreator(
-                dn_encoder_path="model/densenet_encoder/encoder_model.h5",
+                dn_encoder_path=dn_encoder_path,
                 nb_extra_sdn_units=nb_extra_sdn_units)
 
     model = creator.create_diamondback_model()
@@ -82,10 +86,11 @@ def get_adam_optimizer(initial_learnrate):
     return optimizer
 
 if __name__ == "__main__":
-    debug = True if input("Debug? [y/n lowercase]") == 'y' else False
+    #debug = True if input("Debug? [y/n lowercase]: ") == 'y' else False
+    debug = False
 
-    model = get_model(nb_extra_sdn_units=1)
-    optimizer = get_adam_optimizer(initial_learnrate=0.1)
+    model = get_model(nb_extra_sdn_units=1, dn_encoder_path="model/densenet_encoder/encoder_model.h5")
+    optimizer = get_adam_optimizer(initial_learnrate=0.01)
     
     print("[db-training] Compiling the model...")
     model.compile(loss=per_pixel_softmax_cross_entropy_loss,
