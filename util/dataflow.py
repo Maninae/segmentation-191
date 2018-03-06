@@ -11,7 +11,7 @@ __default_datagen_args = dict(
     horizontal_flip = True
 )
 
-DEFAULT_BATCH_SIZE = 64
+DEFAULT_BATCH_SIZE = 32
 
 def preprocess_mask(y):
     """

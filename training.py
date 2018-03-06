@@ -10,7 +10,7 @@ from model.diamondback import DiamondbackModelCreator
 from model.loss import per_pixel_softmax_cross_entropy_loss, IOU
 
 from keras.callbacks import Callback, ModelCheckpoint, LearningRateScheduler
-from keras.optimizers import Adam
+from keras.optimizers import Adam, SGD
 
 
 class IntraEpochHistory(Callback):
@@ -80,17 +80,20 @@ def get_model(nb_extra_sdn_units, dn_encoder_path):
     model = creator.create_diamondback_model()
     return model
 
-def get_adam_optimizer(initial_learnrate):
+
+def get_optimizer(initial_learnrate):
     print("[db-training] Getting the optimizer...")
-    optimizer = Adam(lr=initial_learnrate)
+    #optimizer = Adam(lr=initial_learnrate)
+    optimizer = SGD(lr=initial_learnrate, momentum=0.9, nesterov=True)
     return optimizer
+
 
 if __name__ == "__main__":
     #debug = True if input("Debug? [y/n lowercase]: ") == 'y' else False
     debug = False
 
     model = get_model(nb_extra_sdn_units=1, dn_encoder_path="model/densenet_encoder/encoder_model.h5")
-    optimizer = get_adam_optimizer(initial_learnrate=0.01)
+    optimizer = get_optimizer(initial_learnrate=0.01)
     
     print("[db-training] Compiling the model...")
     model.compile(loss=per_pixel_softmax_cross_entropy_loss,
