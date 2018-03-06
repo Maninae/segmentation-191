@@ -84,7 +84,7 @@ def get_model(nb_extra_sdn_units, dn_encoder_path):
 def get_optimizer(initial_learnrate):
     print("[db-training] Getting the optimizer...")
     #optimizer = Adam(lr=initial_learnrate)
-    optimizer = SGD(lr=initial_learnrate, momentum=0.9, nesterov=True)
+    optimizer = SGD(lr=initial_learnrate)
     return optimizer
 
 
