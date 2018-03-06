@@ -31,15 +31,14 @@ def get_callbacks_list():
     #savepath = "/output/model/%s/%s_ep{epoch:02d}-vloss={val_loss:.4f}-vbacc={val_binary_accuracy:.4f}.h5" % (sensor_id, model_base_name)
     
     #savepath = "model/weights/diamondback_ep{epoch:02d}-vloss={val_loss:.4f}-tloss={train_loss:.4f}.h5"
-    savepath = "/output/diamondback_ep{epoch:02d}-vloss={val_loss:.4f}-tloss={train_loss:.4f}.h5"
+    savepath = "/output/diamondback_ep{epoch:02d}-vloss={val_loss:.4f}-IOU={IOU:.4f}.h5"
     checkpointer = ModelCheckpoint(savepath, monitor='val_loss', verbose=1, save_best_only=True)
 
-    def step_decay(nb_epochs, lr=0.01): # Needs default value for backward TF compatibility
+    def step_decay(nb_epochs, lr=0.001): # Needs default value for backward TF compatibility
         """ This needs to be in harmony with get_optimizer(initial_learnrate)!
             Also depends on the number epochs we are doing. Right now:
             90 epochs, /10 downscaling at 30, 60.
         """
-        lr = 0.01 # Forget the parameter. Also, change this if Adam's initial lr changes
         if nb_epochs > 60:
             lr /= 100
         elif nb_epochs > 30:
@@ -93,7 +92,7 @@ if __name__ == "__main__":
     debug = False
 
     model = get_model(nb_extra_sdn_units=1, dn_encoder_path="model/densenet_encoder/encoder_model.h5")
-    optimizer = get_optimizer(initial_learnrate=0.01)
+    optimizer = get_optimizer(initial_learnrate=0.001)
     
     print("[db-training] Compiling the model...")
     model.compile(loss=per_pixel_softmax_cross_entropy_loss,
@@ -110,10 +109,10 @@ if __name__ == "__main__":
 
     history_over_epochs = model.fit_generator(
         train_generator,
-        steps_per_epoch=500, # 64115 / 128
-        epochs=90,
+        steps_per_epoch=10, # 64115 / DEFAULT_BATCH_SIZE in util/dataflow.py
+        epochs=2,
         validation_data=val_generator,
-        validation_steps=21, # 2693 / 128
+        validation_steps=10, # 2693 / DEFAULT_BATCH_SIZE in util/dataflow.py
         callbacks=callbacks_list)
     
     with open("/output/history_over_epochs.pkl", 'wb') as f:

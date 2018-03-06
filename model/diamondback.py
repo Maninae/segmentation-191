@@ -38,6 +38,7 @@ class DiamondbackModelCreator(object):
 
         self.data_format = K.image_data_format()
         assert self.data_format in {'channels_last', 'channels_first'}
+        print("[db-model] Discovered K.image_data_format() = %s, proceeding with this convention.." % self.data_format)
         self.concat_axis = -1 if self.data_format == 'channels_last' else 1
 
         # We can set this variable depending on whether we want to experiment with relu or swish.
