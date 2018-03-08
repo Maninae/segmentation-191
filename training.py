@@ -20,6 +20,10 @@ import datetime
 import argparse
 
 global_initial_learnrate = 1e-4
+custom_objects_dict = {
+        'per_pixel_softmax_cross_entropy_loss': per_pixel_softmax_cross_entropy_loss,
+        'IOU': IOU
+}
 
 
 class IntraEpochHistory(Callback):
@@ -64,7 +68,10 @@ def get_callbacks_list():
     savepath = "/output/diamondback_ep{epoch:02d}" \
                "-tloss={loss:.4f}-vloss={val_loss:.4f}" \
                "-tIOU={IOU:.4f}-vIOU={val_IOU:.4f}.h5"
-    checkpointer = ModelCheckpoint(savepath, monitor='val_loss', verbose=1, save_best_only=False)
+    checkpointer = ModelCheckpoint(savepath,
+                                   monitor='val_loss',
+                                   verbose=1,
+                                   save_best_only=False)
 
     # Reduce lr x10 if no val loss improvement after 3 epochs
     lrate_plateau_reducer = ReduceLROnPlateau(monitor='val_loss', 
@@ -73,13 +80,14 @@ def get_callbacks_list():
                                               verbose=1, mode='min')
 
     # Won't need batch_size param unless histogram_freq > 0, but just in case
-    tensorboard = TensorBoard(log_dir="/output/logs/{}".format(datetime.datetime.now()),
+    tensorboard = TensorBoard(log_dir="/output/logs/{}"
+                                .format(datetime.datetime.now()),
                               write_graph=False,
                               batch_size=DEFAULT_BATCH_SIZE)
 
     callbacks_list = [history, checkpointer, lrate_plateau_reducer, tensorboard]
     print("[db-training] We have the following callbacks:")
-    for cb in callbacks:
+    for cb in callbacks_list:
         print("[db-training] %s" % str(cb))
 
     return callbacks_list
@@ -123,21 +131,30 @@ def get_optimizer(initial_learnrate):
     return optimizer
 
 
-if __name__ == "__main__":
+def parse_arguments_from_command():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--debug", help="Debug mode: load instead the coco-debug directory as data",
-                        action='store_true')
-    parser.add_argument("--load_path", help="optional path argument, if we want to load an existing model")
-    args = parser.parser_args()
+    parser.add_argument("--debug",
+        help="Debug mode: load instead the coco-debug directory as data",
+        action='store_true')
+    parser.add_argument("--load_path",
+        help="optional path argument, if we want to load an existing model")
+    args = parser.parse_args()
+    return args
+
+######################################################
+
+if __name__ == "__main__":
+    args = parse_arguments_from_command()    
 
     debug = args.debug
     stored_model_path = args.load_path
 
     if stored_model_path is not None:
         assert stored_model_path[-3:] == '.h5'
-        model = load_model(stored_model_path)
+        model = load_model(stored_model_path, custom_objects=custom_objects_dict)
     else:
-        model = get_model(nb_extra_sdn_units=1, dn_encoder_path="model/densenet_encoder/encoder_model.h5")
+        model = get_model(nb_extra_sdn_units=1,
+                          dn_encoder_path="model/densenet_encoder/encoder_model.h5")
     
     
     optimizer = get_optimizer(initial_learnrate=global_initial_learnrate)

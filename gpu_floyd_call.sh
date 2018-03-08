@@ -1,6 +1,6 @@
 #!/bin/bash
 floyd run \
-    --data ojwang/datasets/coco-people/1:/coco \
+    --data ojwang/datasets/coco-debug/1:/coco \
     --data ojwang/datasets/diamondback_ep07/1:/weights \
     --env tensorflow-1.5 \
     --gpu+ \
