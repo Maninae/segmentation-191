@@ -12,8 +12,14 @@ from model.diamondback import DiamondbackModelCreator
 from model.loss import per_pixel_softmax_cross_entropy_loss, IOU
 
 from keras.callbacks import Callback, ModelCheckpoint, ReduceLROnPlateau, \
-                            Tensorboard
+                            TensorBoard
 from keras.optimizers import Adam, SGD
+from keras.models import load_model
+
+import datetime
+import argparse
+
+global_initial_learnrate = 1e-4
 
 
 class IntraEpochHistory(Callback):
@@ -54,21 +60,22 @@ def get_callbacks_list():
 
     # From AIH:
     #savepath = "/output/model/%s/%s_ep{epoch:02d}-vloss={val_loss:.4f}-vbacc={val_binary_accuracy:.4f}.h5" % (sensor_id, model_base_name)
-    
     #savepath = "model/weights/diamondback_ep{epoch:02d}-vloss={val_loss:.4f}-tloss={train_loss:.4f}.h5"
     savepath = "/output/diamondback_ep{epoch:02d}" \
-               "-vloss={val_loss:.4f}-vIOU={val_IOU:.4f}" \
-               "-tloss={loss:.4f}-tIOU={IOU:.4f}.h5"
+               "-tloss={loss:.4f}-vloss={val_loss:.4f}" \
+               "-tIOU={IOU:.4f}-vIOU={val_IOU:.4f}.h5"
     checkpointer = ModelCheckpoint(savepath, monitor='val_loss', verbose=1, save_best_only=False)
 
-    # Reduce lr x10 if no val loss improvement after 2 epochs
+    # Reduce lr x10 if no val loss improvement after 3 epochs
     lrate_plateau_reducer = ReduceLROnPlateau(monitor='val_loss', 
-                                              factor=0.2, min_lr=1e-6,
-                                              patience=2, epsilon=100.,
+                                              factor=0.25, min_lr=1e-6,
+                                              patience=3, epsilon=100.,
                                               verbose=1, mode='min')
 
     # Won't need batch_size param unless histogram_freq > 0, but just in case
-    tensorboard = Tensorboard(log_dir="/output/logs", write_graph=False, batch_size=DEFAULT_BATCH_SIZE)
+    tensorboard = TensorBoard(log_dir="/output/logs/{}".format(datetime.datetime.now()),
+                              write_graph=False,
+                              batch_size=DEFAULT_BATCH_SIZE)
 
     callbacks_list = [history, checkpointer, lrate_plateau_reducer, tensorboard]
     print("[db-training] We have the following callbacks:")
@@ -117,11 +124,23 @@ def get_optimizer(initial_learnrate):
 
 
 if __name__ == "__main__":
-    #debug = True if input("Debug? [y/n lowercase]: ") == 'y' else False
-    debug = False
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--debug", help="Debug mode: load instead the coco-debug directory as data",
+                        action='store_true')
+    parser.add_argument("--load_path", help="optional path argument, if we want to load an existing model")
+    args = parser.parser_args()
 
-    model = get_model(nb_extra_sdn_units=1, dn_encoder_path="model/densenet_encoder/encoder_model.h5")
-    optimizer = get_optimizer(initial_learnrate=1e-4)
+    debug = args.debug
+    stored_model_path = args.load_path
+
+    if stored_model_path is not None:
+        assert stored_model_path[-3:] == '.h5'
+        model = load_model(stored_model_path)
+    else:
+        model = get_model(nb_extra_sdn_units=1, dn_encoder_path="model/densenet_encoder/encoder_model.h5")
+    
+    
+    optimizer = get_optimizer(initial_learnrate=global_initial_learnrate)
     
     print("[db-training] Compiling the model...")
     model.compile(loss=per_pixel_softmax_cross_entropy_loss,
@@ -140,7 +159,7 @@ if __name__ == "__main__":
         train_generator,
         steps_per_epoch = 64115 // DEFAULT_BATCH_SIZE,
         #steps_per_epoch=10, # 64115 / DEFAULT_BATCH_SIZE in util/dataflow.py
-        epochs=90,
+        epochs=30,
         validation_data=val_generator,
         validation_steps = 2693 // DEFAULT_BATCH_SIZE, # 2693 / DEFAULT_BATCH_SIZE in util/dataflow.py
         callbacks=callbacks_list)
