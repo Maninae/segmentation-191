@@ -1,6 +1,7 @@
 from keras.regularizers import l2
 from keras.models import load_model # also model.save(filepath)
 from keras.utils.generic_utils import get_custom_objects
+from keras.layers import Conv2D, Conv2DTranspose, Dropout
 
 from model.loss import per_pixel_softmax_cross_entropy_loss, IOU
 custom_objects_dict = {
@@ -8,40 +9,64 @@ custom_objects_dict = {
     'IOU': IOU
 }
 
-#from training import get_optimizer, global_initial_learnrate
 
-
-def add_l2_reg_to_model(filepath):
+def add_l2_reg_to_model(model, l2reg_lambda):
     """
     Run this in the git repo root! Otherwise imports can't be found.
     """
+
+    print("Updating layers with l2 regularization, lambda=%s." % str(l2reg_lambda))
+    for layer in model.layers:
+        
+        is_regularizable = isinstance(layer, Conv2D) or isinstance(layer, Conv2DTranspose)
+        double_check = "conv" in layer.name
+        print("is_regularizable == double_check: %s" % str(is_regularizable == double_check))
+
+        if is_regularizable:
+            layer.kernel_regularizer = l2(l2reg_lambda)
+            print("kernel regularizer for %s is now: %s" % (layer.name, layer.kernel_regularizer))
+        else:
+            print("NOT", layer.name)
+    
+    return model
+    
+
+
+def change_dropout_rate(model, dropout_rate):
+    print("Changing dropout rate of dropout layers to %f." % dropout_rate)
+    for layer in model.layers:
+        is_dropout = isinstance(layer, Dropout)
+        double_check = "dropout" in layer.name
+        if is_dropout:
+            layer.rate = dropout_rate
+            print("Changed dropout on layer %s." % layer.name)
+        else:
+            print("NOT", layer.name)
+
+    return model
+
+
+
+if __name__ == "__main__":
+    filepath = input("Path to model, dem Sie regularization hinzufuegen moechten?: ")
+
     assert filepath[-3:] == '.h5'
 
     print("Loading the model from %s." % filepath)
     model = load_model(filepath, custom_objects=custom_objects_dict)
     old_optimizer = model.optimizer # This is adam, so has saved weights associated with it
 
-    print("Updating layers with regularization.")
-    for layer in model.layers:
-        is_regularizable = "conv" in layer.name
-        if is_regularizable:
-            layer.kernel_regularizer = l2(0.0001)
-            print("kernel regularizer for %s is now: %s" % (layer.name, layer.kernel_regularizer))
-        elif not is_regularizable:
-            print("NOT", layer.name)
+    model = add_l2_reg_to_model(model, 1e-3)
+    model = change_dropout_rate(model, 0.3)
 
-    #optimizer = get_optimizer(initial_learnrate=global_initial_learnrate)
-    
     print("Recompiling model.")
     model.compile(loss=per_pixel_softmax_cross_entropy_loss,
                   optimizer=old_optimizer,
                   metrics=[IOU])
 
     print("Saving model...")
-    savepath = filepath[:-3] + "_WITHREG.h5"
+    savepath = filepath[:-3] + "_WITHREGS.h5"
     model.save(savepath)
     print("Model saved to %s." % savepath)
 
-if __name__ == "__main__":
-    filepath = input("Path to model, dem Sie regularization hinzufuegen moechten?: ")
-    add_l2_reg_to_model(filepath)
+
