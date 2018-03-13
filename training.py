@@ -1,7 +1,10 @@
 import pickle
 import numpy as np
+import tensorflow as tf
 
 from util.dataflow import preprocess_mask, get_generator
+from util.dataflow import DEFAULT_BATCH_SIZE
+
 from util.pathutil import train_img_dir_wrapper, train_mask_dir_wrapper, \
                           val_img_dir_wrapper, val_mask_dir_wrapper, \
                           train_img_debug, train_mask_debug, \
@@ -10,8 +13,20 @@ from util.pathutil import train_img_dir_wrapper, train_mask_dir_wrapper, \
 from model.diamondback import DiamondbackModelCreator
 from model.loss import per_pixel_softmax_cross_entropy_loss, IOU
 
-from keras.callbacks import Callback, ModelCheckpoint, LearningRateScheduler
+from keras.callbacks import Callback, ModelCheckpoint, ReduceLROnPlateau, \
+                            TensorBoard
 from keras.optimizers import Adam, SGD
+from keras.models import load_model
+
+import datetime
+import argparse
+import pickle
+
+global_initial_learnrate = 1e-4
+custom_objects_dict = {
+        'per_pixel_softmax_cross_entropy_loss': per_pixel_softmax_cross_entropy_loss,
+        'IOU': IOU
+}
 
 
 class IntraEpochHistory(Callback):
@@ -23,6 +38,27 @@ class IntraEpochHistory(Callback):
     def on_batch_end(self, batch, logs={}):
         self.losses.append(logs.get('loss'))
 
+    def on_epoch_end(self, epoch, logs={}):
+        with open("/output/history_ep%02d.pkl" % epoch, 'wb') as f:
+            pickle.dump(self.losses, f)
+        # clear the losses we have so far in this epoch, in prep for next epoch.
+        self.losses = []
+
+
+"""
+This function was replaced by the ReduceLROnPlateau callback.
+"""
+# def step_decay(nb_epochs, lr=1e-4): # Needs default value for backward TF compatibility
+#     """ This needs to be in harmony with get_optimizer(initial_learnrate)!
+#         Also depends on the number epochs we are doing. Right now:
+#         90 epochs, /10 downscaling at 30, 60.
+#     """
+#     if nb_epochs > 60:
+#         lr /= 100
+#     elif nb_epochs > 30:
+#         lr /= 10
+#     return lr
+# lrate_scheduler = LearningRateScheduler(step_decay)
 
 def get_callbacks_list():
     print("[db-training] Getting our callbacks...")
@@ -30,28 +66,37 @@ def get_callbacks_list():
 
     # From AIH:
     #savepath = "/output/model/%s/%s_ep{epoch:02d}-vloss={val_loss:.4f}-vbacc={val_binary_accuracy:.4f}.h5" % (sensor_id, model_base_name)
-    
     #savepath = "model/weights/diamondback_ep{epoch:02d}-vloss={val_loss:.4f}-tloss={train_loss:.4f}.h5"
-    savepath = "/output/diamondback_ep{epoch:02d}-vloss={val_loss:.4f}-IOU={IOU:.4f}.h5"
-    checkpointer = ModelCheckpoint(savepath, monitor='val_loss', verbose=1, save_best_only=True)
+    savepath = "/output/diamondback_ep{epoch:02d}" \
+               "-tloss={loss:.4f}-vloss={val_loss:.4f}" \
+               "-tIOU={IOU:.4f}-vIOU={val_IOU:.4f}.h5"
+    checkpointer = ModelCheckpoint(savepath,
+                                   monitor='val_loss',
+                                   verbose=1,
+                                   save_best_only=False)
 
-    def step_decay(nb_epochs, lr=0.001): # Needs default value for backward TF compatibility
-        """ This needs to be in harmony with get_optimizer(initial_learnrate)!
-            Also depends on the number epochs we are doing. Right now:
-            90 epochs, /10 downscaling at 30, 60.
-        """
-        if nb_epochs > 60:
-            lr /= 100
-        elif nb_epochs > 30:
-            lr /= 10
-        return lr
-    lrate_scheduler = LearningRateScheduler(step_decay)
-    
-    return history, checkpointer, lrate_scheduler
+    # Reduce lr x4 if no val loss improvement after 3 epochs
+    lrate_plateau_reducer = ReduceLROnPlateau(monitor='val_loss', 
+                                              factor=0.25, min_lr=1e-6,
+                                              patience=3, epsilon=100.,
+                                              verbose=1, mode='min')
+
+    # Won't need batch_size param unless histogram_freq > 0, but just in case
+    tensorboard = TensorBoard(log_dir="/output/logs/{}"
+                                .format(datetime.datetime.now()),
+                              write_graph=False,
+                              batch_size=DEFAULT_BATCH_SIZE)
+
+    callbacks_list = [history, checkpointer, lrate_plateau_reducer, tensorboard]
+    print("[db-training] We have the following callbacks:")
+    for cb in callbacks_list:
+        print("[db-training] %s" % str(cb))
+
+    return callbacks_list
 
 
-def get_generators(debug=False):
-    if debug:
+def get_generators(local_debug=False):
+    if local_debug:
         train_gen_img_path = train_img_debug
         train_gen_mask_path = train_mask_debug
         val_gen_img_path = val_img_debug
@@ -83,38 +128,68 @@ def get_model(nb_extra_sdn_units, dn_encoder_path):
 
 def get_optimizer(initial_learnrate):
     print("[db-training] Getting the optimizer...")
-    #optimizer = Adam(lr=initial_learnrate)
-    optimizer = SGD(lr=initial_learnrate)
+    optimizer = Adam(lr=initial_learnrate)
+    #optimizer = SGD(lr=initial_learnrate)
     return optimizer
 
 
+def parse_arguments_from_command():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--debug",
+            help="Debug mode: load instead the coco-debug directory as data",
+            action='store_true')
+    parser.add_argument("--local_debug",
+            help="debugging with coco-debug directory on local machine",
+            action='store_true')
+    parser.add_argument("--load_path",
+            help="optional path argument, if we want to load an existing model")
+    args = parser.parse_args()
+    return args
+
+######################################################
+
 if __name__ == "__main__":
-    #debug = True if input("Debug? [y/n lowercase]: ") == 'y' else False
-    debug = False
+    args = parse_arguments_from_command()    
+    print("[db-training] We got args: %s" % str(args))
 
-    model = get_model(nb_extra_sdn_units=1, dn_encoder_path="model/densenet_encoder/encoder_model.h5")
-    optimizer = get_optimizer(initial_learnrate=0.001)
+    debug = args.debug
+    local_debug = args.local_debug
+    stored_model_path = args.load_path
+    print("[db-training] debug is %s." % str(debug))
+    print("[db-training] local_debug is %s." % str(local_debug))
+    print("[db-training] stored model path is %s." % stored_model_path)
+
+    if stored_model_path is not None:
+        assert stored_model_path[-3:] == '.h5'
+        print("[db-training] Loading existing model at %s." % stored_model_path)
+        model = load_model(stored_model_path, custom_objects=custom_objects_dict)
+    else:
+        print("[db-training] initializing a new model and optimizer...")
+        model = get_model(nb_extra_sdn_units=1,
+                          dn_encoder_path="model/densenet_encoder/encoder_model.h5")
+        optimizer = get_optimizer(initial_learnrate=global_initial_learnrate)
     
-    print("[db-training] Compiling the model...")
-    model.compile(loss=per_pixel_softmax_cross_entropy_loss,
-                  optimizer=optimizer,
-                  metrics=[IOU])
+        print("[db-training] Compiling the model...")
+        model.compile(loss=per_pixel_softmax_cross_entropy_loss,
+                      optimizer=optimizer,
+                      metrics=[IOU])
 
-    history, checkpointer, lrate_scheduler = get_callbacks_list() # History, Checkpointer
-    callbacks_list = [history, checkpointer, lrate_scheduler]
+    # History, Checkpointer, learning-rate scheduler
+    callbacks_list = get_callbacks_list() 
 
-    train_generator, val_generator = get_generators(debug=debug)
+    train_generator, val_generator = get_generators(local_debug=local_debug)
 
     print("[db-training] Beginning to fit diamondback model.")
 
 
     history_over_epochs = model.fit_generator(
         train_generator,
-        steps_per_epoch=10, # 64115 / DEFAULT_BATCH_SIZE in util/dataflow.py
-        epochs=2,
+        steps_per_epoch = 2 if debug else 64115 // DEFAULT_BATCH_SIZE,
+        #steps_per_epoch=10, # 64115 / DEFAULT_BATCH_SIZE in util/dataflow.py
+        epochs=2 if debug else 30,
         validation_data=val_generator,
-        validation_steps=10, # 2693 / DEFAULT_BATCH_SIZE in util/dataflow.py
+        validation_steps = 2 if debug else 2693 // DEFAULT_BATCH_SIZE, # 2693 / DEFAULT_BATCH_SIZE in util/dataflow.py
         callbacks=callbacks_list)
     
     with open("/output/history_over_epochs.pkl", 'wb') as f:
-        pickle.dump(history_over_epochs, f)
+        pickle.dump(history_over_epochs.history, f)
