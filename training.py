@@ -1,3 +1,4 @@
+import pickle
 import numpy as np
 
 from util.dataflow import preprocess_mask, get_generator
