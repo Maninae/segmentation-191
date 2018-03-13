@@ -1,5 +1,5 @@
 import keras.backend as K
-
+import numpy as np
 
 def swish(x):
     """
@@ -42,7 +42,7 @@ def preprocess_input(x):
         #         x[:, 1, :, :] -= 116.779
         #         x[:, 2, :, :] -= 123.68
         # else:
-        
+
         # 'RGB'->'BGR'
         x = x[..., ::-1]
 

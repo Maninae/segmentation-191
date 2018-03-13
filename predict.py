@@ -1,6 +1,11 @@
-import keras.backend as K
 import numpy as np
+import argparse
+import tensorflow as tf
+from skimage.io import imsave
+from PIL import Image
+from os.path import join
 
+from keras import backend as K
 from keras.models import load_model
 from keras.preprocessing.image import ImageDataGenerator
 
@@ -12,6 +17,8 @@ custom_objects_dict = {
     'IOU': IOU
 }
 
+name_counter = 0
+
 def parse_arguments_from_command():
     parser = argparse.ArgumentParser()
     parser.add_argument("--debug",
@@ -22,19 +29,22 @@ def parse_arguments_from_command():
     args = parser.parse_args()
     return args
 
-def get_generator():
-    image_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
-    image_dir_wrapper = "backpack/people-val-wrapper"
-    
-    generator = image_datagen.flow_from_directory(
-        image_dir_wrapper,
-        class_mode=None,
-        shuffle=False,
-        batch_size=1,
-        color_mode = 'rgb',
-        target_size = (224,224))
+# https://stackoverflow.com/questions/7762948/how-to-convert-an-rgb-image-to-numpy-array
+def load_image(path):
+    img = Image.open(path)
+    oldsize = img.size
 
-    return generator
+    img = img.resize((224, 224), Image.ANTIALIAS)
+    img.load()
+    data = np.asarray(img, dtype='int32')
+    
+    return data, oldsize
+
+def save_image(array, path, size):
+    img = Image.fromarray((array*255).astype(np.uint8), 'L')
+    # Reshape it back up to the original size, since we shrunk to (224,224) at first
+    img = img.resize(oldsize, Image.ANTIALIAS)
+    img.save(path)
 
 
 if __name__ == "__main__":
@@ -47,13 +57,40 @@ if __name__ == "__main__":
 
     model = load_model(stored_model_path, custom_objects=custom_objects_dict)
     
-    generator = get_generator()
+    files = [
+        '000000100238',
+        '000000100510',
+        '000000100624',
+        '000000100723',
+        '000000200421',
+        '000000200839',
+        '000000200961',
+        '000000300276',
+        '000000300341',
+        '000000400044', # 10
+        '000000400573',
+        '000000400803',
+        '000000400815',
+        '000000500270',
+        '000000500478', # 15
+        '000000500565'
+    ]
+    # while True:
+    #     filename = input("id under backpack/people-val-wrapper/people-val? (e.g. 000000123123): ")
+    #     if filename == "":
+    #         break
+    for filename in files:
 
-    for x in generator: # x = input image
-        y_pred = model.predict(x, batch_size=1, verbose=1) # Save memory by doing batch 1
-        y_pred = K.argmax(y_pred, axis=-1) # 0 is nothing, 1 is person
+        input_dir = "sample-backpack/people-val"
+        output_dir = "assets/output_imgs"
 
-        y_pred = y_pred.astype(np.uint8)
+        array, oldsize = load_image(join(input_dir, filename + ".jpg"))
 
-
-
+        array = array.astype(np.float64)
+        array = array[np.newaxis, ...] # add batch dim
+        array = preprocess_input(array) # preprocess for DenseNet
+        
+        y = model.predict(array, verbose=1)
+        y = np.argmax(y, axis=-1)
+        y = np.squeeze(y) # remove batch dim
+        save_image(y, join(output_dir, filename + "-pred.jpg"), size=oldsize)
