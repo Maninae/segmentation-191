@@ -1,7 +1,12 @@
+import keras.backend as K
+import numpy as np
+
 from keras.models import load_model
+from keras.preprocessing.image import ImageDataGenerator
 
 from model.util import preprocess_input
 from model.loss import per_pixel_softmax_cross_entropy_loss, IOU
+
 custom_objects_dict = {
     'per_pixel_softmax_cross_entropy_loss': per_pixel_softmax_cross_entropy_loss,
     'IOU': IOU
@@ -17,12 +22,19 @@ def parse_arguments_from_command():
     args = parser.parse_args()
     return args
 
+def get_generator():
+    image_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
+    image_dir_wrapper = "backpack/people-val-wrapper"
+    
+    generator = image_datagen.flow_from_directory(
+        image_dir_wrapper,
+        class_mode=None,
+        shuffle=False,
+        batch_size=1,
+        color_mode = 'rgb',
+        target_size = (224,224))
 
-def get_images():
-    pass
-
-def predict_on_images():
-    pass
+    return generator
 
 
 if __name__ == "__main__":
@@ -34,7 +46,14 @@ if __name__ == "__main__":
         stored_model_path = input("Load model from rel path: ")
 
     model = load_model(stored_model_path, custom_objects=custom_objects_dict)
-
-    x = get_images()
     
-    y_pred = model.predict(x, batch_size=1, verbose=1) # Save memory by batch 1
+    generator = get_generator()
+
+    for x in generator: # x = input image
+        y_pred = model.predict(x, batch_size=1, verbose=1) # Save memory by doing batch 1
+        y_pred = K.argmax(y_pred, axis=-1) # 0 is nothing, 1 is person
+
+        y_pred = y_pred.astype(np.uint8)
+
+
+
