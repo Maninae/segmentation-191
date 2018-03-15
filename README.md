@@ -7,12 +7,12 @@ See ```assets``` for poster describing this project in more detail.
 
 ## Model Overview
 
-<img src="assets/diamondback_architecture.png" width="750"/>
+<img src="assets/diamondback_architecture.png" width="825"/>
 
 ## Training History
 Losses and IOU over 19 epochs of training.
 
-<img src="assets/diamondback_loss.png" width="375"/> <img src="assets/diamondback_IOU.png" width="375"/>
+<img src="assets/diamondback_loss.png" width="400"/> <img src="assets/diamondback_IOU.png" width="400"/>
 
 ## Sample Images
 Columns left to right: (1) Image, (2) Diamondback M2 model's prediction, (3) Ground truth segmentation masks.
