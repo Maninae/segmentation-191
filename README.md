@@ -5,6 +5,10 @@ To run data scripts, make sure to install (or be in a virtualenv with) the COCO 
 
 See ```assets``` for poster describing this project in more detail.
 
+## Model Overview
+
+<img src="assets/diamondback_architecture.png" width="750"/>
+
 ## Training History
 Losses and IOU over 19 epochs of training.
 
