@@ -6,6 +6,7 @@ To run data scripts, make sure to install (or be in a virtualenv with) the COCO 
 See ```assets``` for poster describing this project in more detail.
 
 ## Model Overview
+Inspiration mostly from Fu et al. in "SDN for Semantic Segmentation" (https://arxiv.org/abs/1708.04943, 2017).
 
 <img src="assets/diamondback_architecture.png" width="825"/>
 
