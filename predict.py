@@ -24,6 +24,9 @@ def parse_arguments_from_command():
     parser.add_argument("--debug",
             help="Debug mode: more verbose, test things with less data, etc.",
             action='store_true')
+    parser.add_argument("--demo",
+            help='Demo the segmentation',
+            action='store_true')
     parser.add_argument("--load_path",
             help="optional path argument, if we want to load an existing model")
     args = parser.parse_args()
@@ -49,14 +52,31 @@ def save_image(array, path, size):
 
 if __name__ == "__main__":
     args = parse_arguments_from_command()
-    debug = args.debug
+    demo = args.demo
     stored_model_path = args.load_path
-
+            
     if stored_model_path is None:
         stored_model_path = input("Load model from rel path: ")
 
     model = load_model(stored_model_path, custom_objects=custom_objects_dict)
-    
+   
+    while demo: # If demo is true, keep doing this loop.
+        filename = input("Place image in demo-images. Image file name w/ extension?: ")
+        array, oldsize = load_image(join("demo-images", filename))
+
+        array = array.astype(np.float64)
+        array = array[np.newaxis, ...]
+        array = preprocess_input(array)
+
+        y = model.predict(array, verbose=1)
+        y = np.argmax(y, axis=-1)
+        y = np.squeeze(y) # removebatch dim
+        save_image(y, join("demo-images", filename+"-pred.jpg"), size=oldsize)
+
+
+    #########################
+    # Processing images for putting on the poster, predicting on all these files.
+
     files = [
         '000000100238',
         '000000100510',
@@ -75,10 +95,6 @@ if __name__ == "__main__":
         '000000500478', # 15
         '000000500565'
     ]
-    # while True:
-    #     filename = input("id under backpack/people-val-wrapper/people-val? (e.g. 000000123123): ")
-    #     if filename == "":
-    #         break
     for filename in files:
 
         input_dir = "sample-backpack/people-val"
