@@ -6,8 +6,7 @@ To run data scripts, make sure to install / be in a virtualenv with the COCO API
 ## Training History
 Losses and IOU over 19 epochs of training.
 
-<img src="assets/diamondback_loss.png" width="325"/>
-<img src="assets/diamondback_IOU.png" width="325"/>
+<img src="assets/diamondback_loss.png" width="325"/> <img src="assets/diamondback_IOU.png" width="325"/>
 
 ## Sample Images
 Columns left to right: Image, Prediction, Ground truth.
