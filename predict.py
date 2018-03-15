@@ -7,7 +7,6 @@ from os.path import join
 
 from keras import backend as K
 from keras.models import load_model
-from keras.preprocessing.image import ImageDataGenerator
 
 from model.util import preprocess_input
 from model.loss import per_pixel_softmax_cross_entropy_loss, IOU
