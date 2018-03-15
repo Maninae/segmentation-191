@@ -1,5 +1,5 @@
 coco/
-weights/
+weights/diamondback*
 
 ##########################################
 # Default python gitignores from the repo:
