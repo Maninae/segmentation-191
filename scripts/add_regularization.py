@@ -48,7 +48,8 @@ def change_dropout_rate(model, dropout_rate):
 
 
 if __name__ == "__main__":
-    filepath = input("Path to model, dem Sie regularization hinzufuegen moechten?: ")
+    print("[db-add_regularization.py] Run this script from the git repo root, to find modules correctly.")
+    filepath = input("Path to model, that you'd like to add regularization to: ")
 
     assert filepath[-3:] == '.h5'
 

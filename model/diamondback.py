@@ -284,6 +284,7 @@ class DiamondbackModelCreator(object):
 
 
 if __name__ == "__main__":
+    print("[db-model.diamondback.py] If you are running this as a script, do so from the model/ dir.")
     creator = DiamondbackModelCreator(
         dn_encoder_path="densenet_encoder/encoder_model.h5",
         nb_extra_sdn_units=1)
