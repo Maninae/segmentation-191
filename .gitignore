@@ -1,6 +1,5 @@
 coco/
 weights/diamondback*
-demo-images/
 model/densenet_encoder/*.h5
 ##########################################
 # Default python gitignores from the repo:
