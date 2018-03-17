@@ -3,7 +3,7 @@ import tensorflow as tf
 import numpy as np
 
 def per_pixel_softmax_cross_entropy_loss(y_true, y_pred):
-        return K.sum(K.sparse_categorical_crossentropy(y_true, y_pred, from_logits=False))
+        return K.sum(K.sparse_categorical_crossentropy(y_true, y_pred, from_logits=True))
 
 
 def IOU(y_true, y_pred):
